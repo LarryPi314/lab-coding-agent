@@ -243,127 +243,237 @@ You'll need a partner for these steps.
 
 Okay, so far we have seen:
 1. LLMs can write code
-2. patchs can update code in repos
+2. patches can update code in repos
+A coding agent is just those two facts glued together: **tell the LLM to write the patch, then `git apply` it**.
 
-The way coding agents work is to just ask the LLM to directly create the patch for us!
+In this part you will write the agent.
+We'll call it `committe` (Latin for "put together" and the origin of English "commit") in the spirit of `dic`---we are casting spells to force the llm to do our bidding.
 
-<!--
-This lab is in under development.
-Everything below is notes for the future.
+### Generating the Patch
 
-**Exercise:** make the patch brittle. Edit a line the patch touches and re-try:
+The first key idea is that the prompt must specify the output format.
+Below is the prompt I use wrapped in a bash function.
+Notice that the prompt:
+1. starts high level,
+2. then provides an examples,
+3. then provides detailed rules.
+This 3-stage prompt format is a good template for designing your own prompts.
 
+```bash
+function committe-prompt() {
+    cat <<'EOF'
+You are a coding agent.
+The user describes a change they want made to a git repository.
+You respond with:
+1. a commit message (Tim Pope style)
+2. a patch.
+Here is an example:
+
+\`\`\`
+fix the foobar bug
+
+diff --git a/path/to/file b/path/to/file
+--- a/path/to/file
++++ b/path/to/file
+@@ -<old_start>,<old_count> +<new_start>,<new_count> @@
+ context line
+-removed line
++added line
+ context line
+\`\`\`
+
+Rules:
+- No other content.
+    - Do NOT wrap your response in markdown code fences.
+    - Do NOT include any prose other than the commit message
+- The commit message uses Tim pope style
+    - imperative header (50 char max)
+    - optional body explaining the changes
+        - should be used only on complex patches
+- Use standard unified diff syntax with '--- a/...' and '+++ b/...' headers.
+    - For new files use '--- /dev/null' and '+++ b/path'.
+    - You must also specify the mode of the new file
+      (Add the text "new file mode 100644")
+    - For deleted files use '--- a/path' and '+++ /dev/null'.
+- The patch will be applied with \`git apply --recount\`
+    - Hunk line numbers do not have to be exact,
+      but the context lines must be recognizable in the current file.
+    - Include 2-3 lines of unchanged context around each change.
+    - These context lines must exactly match the original document.
+      (Including whitespace, quotation marks, and other punctuation.)
+- Prefer small, focused patches.
+- State a structural change the way git states it, never as content.
+    - To move a file, state the rename and no hunks.
+      For example:
+          diff --git a/old b/new
+          similarity index 100%
+          rename from old
+          rename to new
+      A move that also edits the file states those two rename lines and
+      then the hunks, which are the change against the old contents.
+    - To delete a file, state the mode and no hunks:
+          diff --git a/old b/old
+          deleted file mode 100644
+    - To change a file's mode and nothing else:
+          diff --git a/script b/script
+          old mode 100644
+          new mode 100755
+    - A new file states its mode: 100644, or 100755 when it is executable.
+    - A symlink is a new file of mode 120000 whose one added line is the
+      path it points at.
+- If the change cannot or should not be made yet -- the request is
+  ambiguous, the tree does not support it, or you need a decision the user
+  has not made -- write no patch and reply with your question alone.
+    - It is printed and nothing is committed.
+
+Use the following information to help you write the code:
+
+$ git ls-files
+$(git ls-files)
+EOF
+}
 ```
-$ git checkout cat.py
-$ sed -i 's/import sys/import os/' cat.py
-$ git apply fix.patch
-error: patch failed: cat.py:1
-error: cat.py: patch does not apply
-```
 
-This is the exact failure mode real coding agents hit. `committe` solves it with fuzzy-matching retries.
-
-Commit it:
-
-```
-$ git add cat.py
-$ git commit -m "fix O(n) memory in cat.py"
-```
-
----
-
-## Part 3: automate with `committe`
-
-Look at `committe.sh` in the repo. It wraps exactly the workflow above:
-
-- `committe-mkpatch` → `$llm_command -s "$(committe-prompt)"` → saves to `$(committe-patchfile)` = `.git/committe-patchfile`
-- `committe-apply` → `git apply`, falls back to `git-apply-fuzzy`
-- `committe-commit` → commits with a `[geni]` tag
-
-Source it (must be `source`, not `./`, so the functions land in your shell):
-
+Create a file `committe.sh` and place the `committe-prompt` function inside of it.
+In order to have access to this function in the shell, you'll need to source your script:
 ```
 $ source committe.sh
+$ commite-prompt
+```
+(Observe above that functions are called just like regular programs.)
+
+Now we can write another function that invokes `dic` (or `llm`) and creates the patchfile:
+
+```bash
+function committe-mkpatch() {
+    dic -s "$(committe-prompt)" "$@" > "./git/committe-patchfile"
+}
+```
+Add this function to your `committe.sh` script and re-source it.
+
+Inside of the `lab-cat` repo's master branch (where the `cat.py` file has not been fixed), you can now generate a patch by running a command like
+```
+$ committe-mkpatch <<EOF
+$(files-to-prompt . .github)
+
+Fix the python.
+EOF
+```
+Then inspect the patch with
+```
+$ cat .git/committe-patchfile
 ```
 
-Set the llm command if not already set (skip if your `.bashrc` defines `llm_command`):
+There are a few subtlties to observe:
 
-```
-$ llm_command='claude -p'
-```
+1. The heredoc applied to `committe-mkpatch` gets passed over to `dic` inside of it,
+    and so `dic` will write a patchfile to stdout, and output redirection will place this patchfile at `./git/committe-patchfile`.
+    A file inside the `.git` folder was chosen because git ignores these files, and so the patch will not accidentally end up being committed to the repo.
+    It is standard for tools that work with git to place their temporary files in the `.git` repo like this.
 
-Run the whole agent end-to-end:
+1. The `"$@"` inside `committe-mkpatch` passes all the command line arguments to the `dic` program.
+    These means we can use `committe-mkpatch` just like we would `dic`.
+    A common pattern is to first start a conversation with `dic` asking questions,
+    then switch over to `committe-mkpatch` when we are ready to code:
+    ```
+    $ dic <<EOF
+    $(files-to-prompt . .github)
+    what is the purpose of this repo?
+    EOF
+    $ committe-mkpatch -c 'implement the fix'
+    ```
 
-```
-$ git checkout cat.py                     # reset the bug
-$ committe "fix cat.py to use O(1) memory"
-```
+### Applying the patch
 
-Watch it:
-1. send the request + `committe-prompt` system prompt to the LLM
-2. write the returned patch to `.git/committe-patchfile`
-3. `git apply --index` it
-4. commit with the tag
+We're almost done.
+The last step is to apply the patch automatically.
+The function below shows how to do that:
 
-Verify:
+```bash
+function committe-apply() {
+    # First we apply the patch.
+    # Notice that we have added the --recount and --ignore-whitespace flags.
+    # These allow git apply to be more flexible when applying the patch,
+    # and so small typos (which llms are likely to do) will not cause the patch to fail.
+    # It is still possible, however, for the patch to fail if the llm made major mistakes, which happens on occasion.
+    git apply --index --recount --ignore-whitespace '.git/committe-patchfile'
 
-```
-$ git log -1 --oneline
-1a2b3c4 [geni] fix cat.py to use O(1) memory
-$ ./test.sh
-PASS
-```
+    # The git apply command ignores the commit message at the top of the patchfile.
+    # Now we extract that message with sed.
+    local msg
+    msg="$(sed -e '/^diff --git/,$d' "$(committe-patchfile)")"
 
-Peek under the hood:
-
-```
-$ cat .git/committe-patchfile     # the raw LLM output
-$ git show HEAD                   # the commit it made
-$ committe-prompt                 # the system prompt it used
-```
-
-**Note:** `committe-apply` uses `git apply --index`, so the patch is staged automatically; no separate `git add` needed.
-
----
-
-## Part 4 (optional): prompt engineering
-
-The `committe-prompt` function defines the system prompt. Have students:
-
-```
-$ committe-prompt > myprompt
-$ vim myprompt      # modify instructions (e.g. "always use numpy")
+    # We commit specifying the --author flag and tagging the message.
+    # Both of these modifications make it easy to idenitfy which commits were made automatically.
+    git commit -m "[committe] $msg" --author="committe <committe@committe.ai>"
+}
 ```
 
-then re-source and rerun `committe` to see output change. Point out: **a coding agent is 90% prompt engineering + 10% `git apply`**.
+Now we are ready to define the whole agent, which is just:
 
----
-
-## Part 5: real-world practice
-
-Clone last week's homework repo (or the `continuous-integration` repo) and:
-
-```
-$ cd ~/myrepo
-$ committe "fix all flake8 errors"
-$ committe "add type annotations to every function"
-$ ./test.sh
+```bash
+function committe() {
+    committe-mkpatch "$@"
+    committe-apply
+}
 ```
 
-Observe failure modes:
-- LLM returns prose instead of a patch → `git apply` fails
-- LLM hallucinates context lines → `git-apply-fuzzy` retries
-- Patch touches a file that doesn't exist → hard failure
+Add the `committe-apply` and `committe` functions to your `committe.sh` script and re-source it.
 
----
+### Running it
+
+There are several ways you can use `committe` to implement `lab-cat`:
+
+1. This problem is simple enough that any model is able to 1-shot solve it.
+    (1-shot refers to the fact that the model can solve the problem in one run without breaking it into parts or back-and-forth converation.)
+    ```
+    $ git checkout master
+    $ git checkout -b 1shot
+    $ committe <<EOF
+    $(files-to-prompt . .github)
+    fix the python
+    EOF
+    $ cat cat.py
+    ```
+
+1. More complicated problems require a back-and-forth conversation to solve.
+    `committe` integrates nicely with `dic` (or `llm`).
+    ```
+    $ git checkout master
+    $ git checkout -b conversation
+    $ dic <<EOF
+    $(files-to-prompt README.md)
+    what is this project about?
+    EOF
+    $ dic -c <<EOF
+    what files do I need to provide to solve the problem?
+    EOF
+    $ dic -c <<EOF
+    $(files-to-prompt .github cat.py)
+    EOF
+    $ committe -c 'implement it'
+    $ cat cat.py
+    ```
+    Recall that the `-c` flag stands for "continue" the conversation,
+    so the final call to `committe` will have all the context from the previous conversation available to write the code.
 
 ## Submission
 
-1. Screenshot of `committe` successfully applying a self-generated patch to a repo of your choice.
-2. Output of `git log --oneline` showing the `[geni]` commits.
-3. One paragraph: in your own words, why does `committe` re-run the LLM if `git apply` fails the first time?
+Push your `conversation`, `1shot`, `partner`, and `pseudomanual` branches to github.
+Recall that for each branch:
+1. you will have to first checkout the branches in your local repo,
+2. then run `git push origin <branch>`.
 
+Submit the url of your repo to canvas.
+I will check that all branches are correctly uploaded.
+
+---
+
+I strongly encourage you to try to use the `committe` tool throughout the rest of the course.
+The model `deepseek-v4.1-flash` (or any other SOTA model) can essentially 1shot all the code you need for the mapreduce assignment;
+but you stil have to figure out how to orchestrate all the files and get them to run corrcetly.
+
+If you ever need to undo a commit created by `committe`, the git incantation is
 ```
-$ git log --oneline
-... [geni] fix ...
--->
+$ git reset --hard HEAD~1
+```
