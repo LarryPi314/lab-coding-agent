@@ -1,0 +1,3 @@
+[submodule "lab-cat"]
+	path = lab-cat
+	url = https://github.com/mikeizbicki/lab-cat
