@@ -1,15 +1,19 @@
 # Lab: Coding Agents
 
-In this lab you will create a simple coding agent.
+In this lab you will create a simple coding agent based on `llm` or `dic`.
 
-The agent will rely on git *patch files*.
+<img src=img/xkcd.png width=300px />
+
+Your agent will rely on git *patch files*.
 Patch files are core to the Linux and Python development process,
 and you'll notice that Linus and Guido both helped write portions of this lab.
 
-<img src=img/contrib.png>
+<img src=img/contrib.png width=200px />
 
 You'll need a partner for Part 2 to practice the [Linux patchfile contribution process](https://docs.kernel.org/process/applying-patches.html),
 which is slightly more technical than the github pull request.
+The rest of this lab can be completed alone
+(but you are of course encouraged to collaborate with other biologicals).
 
 ## Part 0: setup
 
@@ -20,8 +24,9 @@ $ git clone https://github.com/mikeizbicki/lab-coding-agents
 $ cd lab-coding-agents
 ```
 
-Observe that this repo contains a *subrepo* `lab-cat` inside of it.
-By default, `git clone` does not download subrepos when cloning.
+Observe that this repo contains a *submodule* `lab-cat` inside of it.
+(A submodule is a git repo inside of another git repo.)
+By default, `git clone` does not download submodules when cloning.
 Observe that the `lab-cat` folder is empty:
 ```
 $ ls lab-cat
@@ -38,7 +43,7 @@ The idea is that the existing `cat.py` file used $O(n)$ memory and so cannot wor
 and the assignment is to change it to an $O(1)$ memory implementation
 (just like the built-in `cat` program).
 
-In this lab, you will develop a basic coding agent and use it to solve the `lab-cat` submodule lab.
+In this lab, you will solve this `lab-cat` submodule in 3 ways with different levels of automation.
 
 ## Part 1: pseudo-manually fixing
 
@@ -66,22 +71,31 @@ We can get qwen to write the corrected python code for us by running
 $ qwen <<EOF
 $(files-to-prompt .)
 
-Implement the python code.
+Fix the python code.
 EOF
 ```
-The above command will likely give you an error about the llm refusing to obey your instructions.
-This is due to a *prompt injection attack* in the README file where I overwrite your instructions of `Write the python.` with my own instructions.
-You can fix this by either:
-1. modifying README to remove the prompt injection, or
-2. actually providing the testcases by modifying the `files-to-prompt` command to explicitly include the `.github` folder (recall that hidden files are ignored by default in `files-to-prompt`).
-A command like the following should work
-```
-$ qwen <<EOF
-$(files-to-prompt . .github)
 
-Implement the python code.
-EOF
-```
+> **NOTE:**
+> The command above will likely give you an error about the llm refusing to obey your instructions.
+> This is due to a *prompt injection attack* in the README file where I overwrite your instructions of `Fix the python code` with my own instructions.
+> LLMs have no built-in way of identifying which text is "instructions",
+> and which text is just "background knowledge".
+>
+> You can get your `qwen` command to work by either:
+> 1. modifying README to remove the prompt injection, or
+> 2. actually providing the testcases by modifying the `files-to-prompt` command to explicitly include the `.github` folder (recall that hidden files are ignored by default in `files-to-prompt`).
+>
+> A command like the following will add the test cases and so should work:
+> ```
+> $ qwen <<EOF
+> $(files-to-prompt . .github)
+> 
+> Fix the python code.
+> EOF
+> ```
+> Recall that when you are asking your own questions to llms,
+> you will always get much better responses if you include the test cases in the context.
+
 Copy/paste the output of `qwen` to vim in order to fix the `cat.py` file.
 Then add/commit your new code.
 ```
@@ -140,9 +154,10 @@ You'll need a partner for these steps.
     ```
 
 1. Create a new empty repo on github.
-    Add it as the origin for your `lab-cat` repo and push the contents to github:
+    Then connect the `lab-cat` folder to this new repo by running
     ```
-    $ git remote add origin <url>
+    $ git remote rm origin # this was already set by the submodule
+    $ git remote add origin <your_url>
     $ git push origin master
     ```
     Observe on github that only your `master` branch exists remotely, and your `pseudomanual` branch does not.
@@ -153,7 +168,7 @@ You'll need a partner for these steps.
     By default, every user on the lambda server has read access to every other user's home folder.
     So you should be able to run a command something like
     ```
-    $ cp /home/partner_user_name/lab-coding-agent/lab-cat/pseudomanual.patch ./partner.patch
+    $ cp /home/partner_user_name/lab-coding-agents/lab-cat/pseudomanual.patch ./partner.patch
     ```
     Make sure that you don't clobber your own patch file in the command above,
     or you'll have to regenerate it.
@@ -163,10 +178,12 @@ You'll need a partner for these steps.
     $ git checkout -b partner
     $ git apply partner.patch
     ```
+    > **NOTE:**
+    > It is important that you are currently on the master branch when you create `partner`, ot the `git apply` will fail.
 
 1. Observe that the contents of your repo's `partner` branch have changed to match your partner's `pseudomanual` branch, but that the file is not yet committed.
     ```
-    $ git cat cat.py
+    $ cat cat.py
     $ git status
     ```
 
@@ -183,19 +200,21 @@ You'll need a partner for these steps.
 1. Observe for a second that you did not need to enter your partner's github password in order to register a commit by them.
 
     Actually, you can register a commit from any user.
-    Try running the following commands to add a commit from Linus Torvalds:
+    The commands below will add commits from Linus Torvalds to your `lab-cat` repo:
     ```
     $ echo '<!-- linux sux, microsoft rules -->' >> README.md
     $ git add README.md
     $ git commit --author="Linus Torvalds <torvalds@linux-foundation.org>" -m 'linus'
     ```
-    and the following to add a commit from Guido van Rossum:
+    and the following will add a commit from Guido van Rossum:
     ```
     $ echo '<!-- rust is the best! -->' >> README.md
     $ git add README.md
     $ git commit --author="Guido van Rossum <guido@python.org>" -m 'guido'
     ```
     View your repo on github, and you will see both Linus and Guido as contributors.
+
+    (Sorry for lying to you all earlier---Linus and Guido did not actually help write this lab.)
 
     Why is github so insecure?!
     Because "git is not github".
