@@ -2,6 +2,29 @@
 
 In this lab you will create a simple coding agent based on `llm` or `dic`.
 
+> **NOTE:**
+> Everything in this lab works with the `llm` and `qwen` models provided by groq.
+> But if you'd like to try fancier newer models, you are welcome to use the following API key:
+> ```
+> $ export OPENROUTER_API_KEY='sk'-'or'-'v1-7568a8484b8'55a500d2ac7920fa31efe59f1d53f3b060d914290d543ab36e337
+> ```
+> > **DOUBLE NOTE:**
+> > Observe the weird single quotes `'` to the right of the equals above.
+> > Github performs *secret scanning* checks on all files committed to github looking for API keys that match a regex.
+> > Normally, people do not want to actually upload API keys to github because then everyone in the world has access to them.
+> > But in this case I actually do want to upload the API key.
+> > To avoid the regex check that github uses, I added these `'`.
+> > *Semantically* this has the same meaning as the shell without the `'`,
+> > It is only a *syntactic* difference.
+>
+> Then you should be able to use any openrouter model.
+> For example, to use the latest deepseek model (which is very cheap and very good),
+> you pass the `-m openrouter+deepseek` flag to `dic`:
+> ```
+> $ dic -m openrouter+deepseek 'hello'
+> ```
+> The API key has $5 associated with it, which is between 5k-50k API calls depending on how large the context window is.
+
 <img src=img/xkcd.png width=300px />
 
 Your agent will rely on git *patch files*.
@@ -45,7 +68,7 @@ and the assignment is to change it to an $O(1)$ memory implementation
 
 In this lab, you will solve this `lab-cat` submodule in 3 ways with different levels of automation.
 
-## Part 1: pseudo-manually fixing
+## Part 1: pseudomanually fixing
 
 Inside the `lab-cat` submodule create a new branch `pseudomanual`:
 ```
@@ -179,7 +202,7 @@ You'll need a partner for these steps.
     $ git apply partner.patch
     ```
     > **NOTE:**
-    > It is important that you are currently on the master branch when you create `partner`, ot the `git apply` will fail.
+    > It is important that you are currently on the master branch when you create `partner`, or the `git apply` will fail.
 
 1. Observe that the contents of your repo's `partner` branch have changed to match your partner's `pseudomanual` branch, but that the file is not yet committed.
     ```
@@ -190,7 +213,7 @@ You'll need a partner for these steps.
 1. Commit and push the changes.
     Because these changes were made by your partner, you should specify their email and username with `--author`:
     ```
-    $ git commit --author="Parner Name <email@gmail.com>" -m 'update with patchfile'
+    $ git commit --author="Partner Name <email@gmail.com>" -m 'update with patchfile'
     $ git push origin partner
     ```
     Then observe in the github interface that it shows that your partner made the commit and not you.
@@ -261,7 +284,7 @@ This 3-stage prompt format is a good template for designing your own prompts.
 
 ```bash
 function committe-prompt() {
-    cat <<'EOF'
+    cat <<EOF
 You are a coding agent.
 The user describes a change they want made to a git repository.
 You respond with:
@@ -338,7 +361,7 @@ Create a file `committe.sh` and place the `committe-prompt` function inside of i
 In order to have access to this function in the shell, you'll need to source your script:
 ```
 $ source committe.sh
-$ commite-prompt
+$ committe-prompt
 ```
 (Observe above that functions are called just like regular programs.)
 
@@ -346,7 +369,7 @@ Now we can write another function that invokes `dic` (or `llm`) and creates the 
 
 ```bash
 function committe-mkpatch() {
-    dic -s "$(committe-prompt)" "$@" > "./git/committe-patchfile"
+    dic -s "$(committe-prompt)" "$@" > "./.git/committe-patchfile"
 }
 ```
 Add this function to your `committe.sh` script and re-source it.
@@ -367,7 +390,7 @@ $ cat .git/committe-patchfile
 There are a few subtlties to observe:
 
 1. The heredoc applied to `committe-mkpatch` gets passed over to `dic` inside of it,
-    and so `dic` will write a patchfile to stdout, and output redirection will place this patchfile at `./git/committe-patchfile`.
+    and so `dic` will write a patchfile to stdout, and output redirection will place this patchfile at `./.git/committe-patchfile`.
     A file inside the `.git` folder was chosen because git ignores these files, and so the patch will not accidentally end up being committed to the repo.
     It is standard for tools that work with git to place their temporary files in the `.git` repo like this.
 
@@ -396,12 +419,15 @@ function committe-apply() {
     # These allow git apply to be more flexible when applying the patch,
     # and so small typos (which llms are likely to do) will not cause the patch to fail.
     # It is still possible, however, for the patch to fail if the llm made major mistakes, which happens on occasion.
-    git apply --index --recount --ignore-whitespace '.git/committe-patchfile'
+    if ! git apply --index --recount --ignore-whitespace '.git/committe-patchfile'; then
+        echo 'git apply failed'
+        return 1
+    else
 
     # The git apply command ignores the commit message at the top of the patchfile.
     # Now we extract that message with sed.
     local msg
-    msg="$(sed -e '/^diff --git/,$d' "$(committe-patchfile)")"
+    msg="$(sed -e '/^diff --git/,$d' "./.git/committe-patchfile")"
 
     # We commit specifying the --author flag and tagging the message.
     # Both of these modifications make it easy to idenitfy which commits were made automatically.
@@ -470,8 +496,8 @@ I will check that all branches are correctly uploaded.
 ---
 
 I strongly encourage you to try to use the `committe` tool throughout the rest of the course.
-The model `deepseek-v4.1-flash` (or any other SOTA model) can essentially 1shot all the code you need for the mapreduce assignment;
-but you stil have to figure out how to orchestrate all the files and get them to run corrcetly.
+The model `deepseek-v4.1-flash` (or any other SOTA model) can essentially 1shot all the code you need for the mapreduce assignment...
+but you would still have to figure out how to orchestrate all the files and get them to run correctly...
 
 If you ever need to undo a commit created by `committe`, the git incantation is
 ```
