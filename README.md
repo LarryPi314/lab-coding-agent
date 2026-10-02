@@ -1,7 +1,7 @@
 # Lab: Coding Agents
 
 In this lab you will create a simple coding agent based on `llm` or `dic`.
-The agent will still be missing a few features from tools like Claude Code,
+This proto-agent will still be missing a few features from tools like Claude Code,
 but is a simple and reliable "workhorse" that you can feel free to use on any assignment in this class.
 
 <img src=img/xkcd.png width=300px />
@@ -524,3 +524,8 @@ If you ever need to undo a commit created by `committe`, the git incantation is
 ```
 $ git reset --hard HEAD~1
 ```
+
+---
+
+> **NOTE:**
+> There's just a few more steps to do before this coding agent has feature parity with Claude Codex.
