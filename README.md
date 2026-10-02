@@ -244,9 +244,10 @@ You'll need a partner for these steps.
     $ git status
     ```
 
-1. Commit and push the changes.
+1. Add / commit / push the changes.
     Because these changes were made by your partner, you should specify their email and username with `--author`:
     ```
+    $ git add cat.py
     $ git commit --author="Partner Name <email@gmail.com>" -m 'update with patchfile'
     $ git push origin partner
     ```
@@ -456,10 +457,15 @@ The function below shows how to do that:
 ```bash
 function committe-apply() {
     # First we apply the patch.
-    # Notice that we have added the --recount and --ignore-whitespace flags.
-    # These allow git apply to be more flexible when applying the patch,
-    # and so small typos (which llms are likely to do) will not cause the patch to fail.
-    # It is still possible, however, for the patch to fail if the llm made major mistakes, which happens on occasion.
+    # Notice that:
+    # 1. We have added the --recount and --ignore-whitespace flags.
+    #    These allow git apply to be more flexible when applying the patch,
+    #    and so small typos (which llms are likely to do) will not cause the patch to fail.
+    #    It is still possible, however, for the patch to fail if the llm made major mistakes, which happens on occasion.
+    # 2. We have added the --index flag.
+    #    This command automatically adds the changed files to the staging area
+    #    (which is also called the index),
+    #    so we do not need to run a separate git add command before committing.
     if ! git apply --index --recount --ignore-whitespace '.git/committe-patchfile'; then
         echo 'git apply failed'
         return 1
