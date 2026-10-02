@@ -179,8 +179,30 @@ You'll need a partner for these steps.
 
 1. Observe for a second that you did not need to enter your partner's github password in order to register a commit by them.
 
-    This is because "git is not github".
-    git is a *distributed* version control system
+    Actually, you can register a commit from any user.
+    Try running the following commands to add a commit from Linus Torvalds:
+    ```
+    $ echo '<!-- linux sux, microsoft rules -->' >> README.md
+    $ git add README.md
+    $ git commit --author="Linus Torvalds <torvalds@linux-foundation.org>" -m 'linus'
+    ```
+    and the following to add a commit from Guido van Rossum:
+    ```
+    $ echo '<!-- rust is the best! -->' >> README.md
+    $ git add README.md
+    $ git commit --author="Guido van Rossum <guido@python.org>" -m 'guido'
+    ```
+    View your repo on github, and you will see both Linus and Guido as contributors.
+
+    Why is github so insecure?!
+    Because "git is not github".
+    Git is a *distributed* version control system and github is just one of the possible interfaces.
+    Git repos are allowed to exist anywhere in the world, not just on github, and so github cannot control people's identities in a centralized fashion.
+
+    On major projects like the Linux Kernel, it is very important for everyone to be identified properly.
+    Git supports decentralized identify verification through *public key cryptography* and *signing* of git commits.
+    (The [git-scm.com](https://git-scm.com/book/ms/v2/Git-Tools-Signing-Your-Work) contains the official documentatation.)
+    But github does not enforce this type of identity verification.
 
 <!--
 This lab is in under development.
