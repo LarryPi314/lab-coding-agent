@@ -225,7 +225,7 @@ You'll need a partner for these steps.
     By default, every user on the lambda server has read access to every other user's home folder.
     So you should be able to run a command something like
     ```
-    $ cp /home/partner_user_name/lab-coding-agents/lab-cat/pseudomanual.patch ./partner.patch
+    $ cp /home/partner_user_name/lab-coding-agent/lab-cat/pseudomanual.patch ./partner.patch
     ```
     Make sure that you don't clobber your own patch file in the command above,
     or you'll have to regenerate it.
