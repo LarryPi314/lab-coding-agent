@@ -2,6 +2,10 @@
 
 **Goal:** demystify what a "coding agent" is by having students (1) generate a patch by hand, (2) apply it by hand, (3) do it automatically with `committe`. The pedagogical point is that an agent is nothing more than `llm → patch → git apply → git commit` in a loop.
 
+<!--
+Linus was here :)
+-->
+
 ---
 
 ## Part 0: setup
