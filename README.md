@@ -1,13 +1,20 @@
 # Lab: Coding Agents
 
 In this lab you will create a simple coding agent based on `llm` or `dic`.
+The agent will still be missing a few features from tools like Claude Code,
+but is a simple and reliable "workhorse" that you can feel free to use on any assignment in this class.
+
+<img src=img/xkcd.png width=300px />
 
 > **NOTE:**
-> Everything in this lab works with the `llm` and `qwen` models provided by groq.
-> But if you'd like to try fancier newer models, you are welcome to use the following API key:
+> Everything in this lab works with `llm` and the free tier qwen models provided by groq.
+> But I've also created a public API key that everyone in this class can share so that you can all use fancier newer models without paying.
+> You can get access to the API key by running the command
+>
 > ```
 > $ export OPENROUTER_API_KEY='sk'-'or'-'v1-7568a8484b8'55a500d2ac7920fa31efe59f1d53f3b060d914290d543ab36e337
 > ```
+>
 > > **DOUBLE NOTE:**
 > > Observe the weird single quotes `'` to the right of the equals above.
 > > Github performs *secret scanning* checks on all files committed to github looking for API keys that match a regex.
@@ -17,15 +24,16 @@ In this lab you will create a simple coding agent based on `llm` or `dic`.
 > > *Semantically* this has the same meaning as the shell without the `'`,
 > > It is only a *syntactic* difference.
 >
-> Then you should be able to use any openrouter model.
-> For example, to use the latest deepseek model (which is very cheap and very good),
-> you pass the `-m openrouter+deepseek` flag to `dic`:
+> Then with `OPENROUTER_API_KEY` in your environment,
+> you should be able to use any openrouter model from either `dic` or `llm`.
+> From `llm`, you'll have to pip install the `llm-openrouter` extension then you can run the `llm models` command to view all of the models available (which is *every* model that exists).
+> `dic` has openrouter models enabled without any extensions,
+> and you can run with the latest deepseek model by passing the `-m openrouter+deepseek` flag:
 > ```
 > $ dic -m openrouter+deepseek 'hello'
 > ```
 > The API key has $5 associated with it, which is between 5k-50k API calls depending on how large the context window is.
-
-<img src=img/xkcd.png width=300px />
+> So how long this key lasts for depends on how much you all are using it.
 
 Your agent will rely on git *patch files*.
 Patch files are core to the Linux and Python development process,
@@ -33,8 +41,21 @@ and you'll notice that Linus and Guido both helped write portions of this lab.
 
 <img src=img/contrib.png width=200px />
 
-You'll need a partner for Part 2 to practice the [Linux patchfile contribution process](https://docs.kernel.org/process/applying-patches.html),
-which is slightly more technical than the github pull request.
+Linus has historically had a very conservative approach to adopting new technologies in the linux kernel and is famous for his brash personality and calling people out for writing low-quality code.
+For example:
+
+<img src=img/linus1.png width=400px />
+
+And when Linus started accepting AI code in the Linux kernel,
+many saw this as the official turning point that AI coding agents are here to stay.
+If Linus thinks AI is good enough for the Linux kernel,
+it's probably good enough for whatever types of projects you are working on.
+
+<img src=img/linus2.png width=300px />
+
+You'll need a partner for Part 2 of this lab to practice the [Linux patchfile contribution process](https://docs.kernel.org/process/applying-patches.html).
+This process forms the foundation for how AI agents write code,
+but is slightly more technical than the github pull request.
 The rest of this lab can be completed alone
 (but you are of course encouraged to collaborate with other biologicals).
 
