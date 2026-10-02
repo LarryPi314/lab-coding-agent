@@ -72,8 +72,8 @@ The rest of this lab can be completed alone
 Clone the repo.
 
 ```
-$ git clone https://github.com/mikeizbicki/lab-coding-agents
-$ cd lab-coding-agents
+$ git clone https://github.com/mikeizbicki/lab-coding-agent
+$ cd lab-coding-agent
 ```
 
 Observe that this repo contains a *submodule* `lab-cat` inside of it.
