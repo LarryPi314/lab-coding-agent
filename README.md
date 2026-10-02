@@ -1,13 +1,15 @@
 # Lab: Coding Agents
 
-**Goal:** demystify what a "coding agent" is by having students (1) generate a patch by hand, (2) apply it by hand, (3) do it automatically with `committe`. The pedagogical point is that an agent is nothing more than `llm → patch → git apply → git commit` in a loop.
+In this lab you will create a simple coding agent.
 
-<!--
-Linus was here
-Guido was here :)
--->
+The agent will rely on git *patch files*.
+Patch files are core to the Linux and Python development process,
+and you'll notice that Linus and Guido both helped write portions of this lab.
 
----
+<img src=img/contrib.png>
+
+You'll need a partner for Part 2 to practice the [Linux patchfile contribution process](https://docs.kernel.org/process/applying-patches.html),
+which is slightly more technical than the github pull request.
 
 ## Part 0: setup
 
@@ -156,12 +158,13 @@ You'll need a partner for these steps.
     Make sure that you don't clobber your own patch file in the command above,
     or you'll have to regenerate it.
 
-1. Apply your partner's patch file with the command
+1. Apply your partner's patch file to a new `partner` branch with the commands
     ```
+    $ git checkout -b partner
     $ git apply partner.patch
     ```
 
-1. Observe that the contents of your repo's `master` branch have changed to match your partner's `pseudomanual` branch, but that the file is not yet committed.
+1. Observe that the contents of your repo's `partner` branch have changed to match your partner's `pseudomanual` branch, but that the file is not yet committed.
     ```
     $ git cat cat.py
     $ git status
@@ -171,7 +174,7 @@ You'll need a partner for these steps.
     Because these changes were made by your partner, you should specify their email and username with `--author`:
     ```
     $ git commit --author="Parner Name <email@gmail.com>" -m 'update with patchfile'
-    $ git push origin master
+    $ git push origin partner
     ```
     Then observe in the github interface that it shows that your partner made the commit and not you.
 
@@ -204,60 +207,30 @@ You'll need a partner for these steps.
     (The [git-scm.com](https://git-scm.com/book/ms/v2/Git-Tools-Signing-Your-Work) contains the official documentatation.)
     But github does not enforce this type of identity verification.
 
+1. It turns out that github also cannot enforce anything about the dates that commits were created.
+    If you run this simple bash script, you'll add 1000 commits to this repo from random times over the past year.
+    This will make your git contribution chart on your account homepage look super impressive:
+    ```
+    for i in $(seq 1 1000); do
+      echo $i >> log.txt
+      git add log.txt
+      export GIT_AUTHOR_DATE="$(date -d "-$((RANDOM % 365)) days" --rfc-email)"
+      export GIT_COMMITTER_DATE="$GIT_AUTHOR_DATE"
+      git commit -qm "commit $i"
+    done
+    ```
+
+## Part 3: The coding agent
+
+Okay, so far we have seen:
+1. LLMs can write code
+2. patchs can update code in repos
+
+The way coding agents work is to just ask the LLM to directly create the patch for us!
+
 <!--
 This lab is in under development.
 Everything below is notes for the future.
-
-## Part 2: generate a patch with an LLM
-
-Ask the LLM to produce a **unified diff** (a.k.a. patch). The key is `ONLY a unified diff` — without it the model wraps output in markdown fences and `git apply` chokes.
-
-```
-$ claude "Rewrite cat.py to use O(1) memory. Output ONLY a unified diff, no explanations, no markdown fences." > fix.patch
-```
-
-Inspect it (should look like a git diff):
-
-```
-$ cat fix.patch
-diff --git a/cat.py b/cat.py
-index 1a2b3c4..5d6e7f8 100644
---- a/cat.py
-+++ b/cat.py
-@@ -1,4 +1,4 @@
- #!/usr/bin/env python3
- import sys
--data = open(sys.argv[1]).read()
--sys.stdout.write(data)
-+with open(sys.argv[1]) as f:
-+    for line in f:
-+        sys.stdout.write(line)
-```
-
-Explain the syntax:
-- `--- a/...` original, `+++ b/...` modified
-- `@@ -old_start,old_count +new_start,new_count @@` hunk header
-- `-` removed lines, `+` added lines, leading space = unchanged context
-- The `index` line is the git blob hash; `git apply` uses it for verification
-
----
-
-## Part 2: apply the patch manually
-
-Dry-run first — `git apply` is strict and fails if context doesn't match exactly:
-
-```
-$ git apply --check fix.patch
-```
-
-No output = patch is valid. Now apply and test:
-
-```
-$ git apply fix.patch
-$ ./test.sh
-PASS
-$ git diff
-```
 
 **Exercise:** make the patch brittle. Edit a line the patch touches and re-try:
 
