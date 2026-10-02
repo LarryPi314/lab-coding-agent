@@ -3,6 +3,7 @@
 In this lab you will create a simple coding agent based on `llm` or `dic`.
 This proto-agent will still be missing a few features from tools like Claude Code,
 but is a simple and reliable "workhorse" that you can feel free to use on any assignment in this class.
+A later lab will bring your agent to feature parity with Claude Code (and beyond!).
 
 <img src=img/xkcd.png width=300px />
 
@@ -37,7 +38,7 @@ but is a simple and reliable "workhorse" that you can feel free to use on any as
 
 Your agent will rely on git *patch files*.
 Patch files are core to the Linux and Python development process,
-and you'll notice that Linus and Guido both helped write portions of this lab.
+and you'll notice that Linus and Guido both contributetd to this lab.
 
 <img src=img/contrib.png width=200px />
 
@@ -46,7 +47,9 @@ For example:
 
 <img src=img/linus1.png width=400px />
 
-And when Linus started accepting AI code in the Linux kernel,
+You can find a full dataset of his rants against other people's low quality code at <https://github.com/corollari/linusrants>.
+
+So when Linus started accepting AI code in the Linux kernel,
 many saw this as the official turning point that AI coding agents are here to stay.
 If Linus thinks AI is good enough for the Linux kernel,
 it's probably good enough for whatever types of projects you are working on.
@@ -58,6 +61,11 @@ This process forms the foundation for how AI agents write code,
 but is slightly more technical than the github pull request.
 The rest of this lab can be completed alone
 (but you are of course encouraged to collaborate with other biologicals).
+
+> **CAUTION:**
+> This is the first time students have worked through this lab, so there's likely to be bugs.
+> LLMs are also non-deterministic, so this will exacerbate these bugs.
+> Work carefully, and ask questions liberally.
 
 ## Part 0: setup
 
@@ -97,7 +105,7 @@ $ cd lab-cat
 $ git checkout -b pseudomanual
 ```
 
-Soon we will see how to use qwen to solve the lab for us.
+Soon we will see how to use an llm to solve the lab for us.
 But first, let's practice with the `files-to-prompt` command:
 ```
 $ files-to-prompt cat.py
@@ -110,7 +118,7 @@ You should observe that `files-to-prompt` is similar to the built-in `cat` but w
 2. when passed a directory, it prints all non-hidden / non-binary files in the directory
 That makes it particularly good for feeding files into llms.
 
-We can get qwen to write the corrected python code for us by running
+We can get `qwen` (our alias to `llm`) to write the corrected python code for us by running
 ```
 $ qwen <<EOF
 $(files-to-prompt .)
@@ -118,6 +126,11 @@ $(files-to-prompt .)
 Fix the python code.
 EOF
 ```
+
+> **NOTE:**
+> Throughout the lab, feel free to use either `llm` or `qwen`.
+> The instructions use all the different versions of these commands,
+> and so you'll probably have to adapt parts of the instructions to your setup.
 
 > **NOTE:**
 > The command above will likely give you an error about the llm refusing to obey your instructions.
@@ -147,7 +160,7 @@ $ git add cat.py
 $ git commit -m 'fixed by qwen'
 ```
 
-## Part 2: git diffs
+## Part 2: git diffs and patchfiles
 
 A git diff shows the difference between your current code and a different branch/commit.
 Run the command:
@@ -181,7 +194,7 @@ And they can be used to directly change your code.
 Sending raw patch files to other people was the original way to submit "pull requests" to other people before github.com was founded.
 Many open source projects like the Linux kernel still use an email-based workflow using patchfiles and no website.
 
-In the rest of this section, you are going to walk through this manual pull requestprocedure to learn how patch files work.
+In the rest of this section, you are going to walk through this manual pull request procedure to learn how patch files work.
 You'll need a partner for these steps.
 
 **SETUP STEPS:**
@@ -239,6 +252,9 @@ You'll need a partner for these steps.
     ```
     Then observe in the github interface that it shows that your partner made the commit and not you.
 
+    > **NOTE:**
+    > Sometimes github is slow and it takes a few minutes for the contributors list to update.
+
 **WTF?!**
 
 1. Observe for a second that you did not need to enter your partner's github password in order to register a commit by them.
@@ -272,7 +288,6 @@ You'll need a partner for these steps.
 
 1. It turns out that github also cannot enforce anything about the dates that commits were created.
     If you run this simple bash script, you'll add 1000 commits to this repo from random times over the past year.
-    This will make your git contribution chart on your account homepage look super impressive:
     ```
     for i in $(seq 1 1000); do
       echo $i >> log.txt
@@ -282,6 +297,11 @@ You'll need a partner for these steps.
       git commit -qm "commit $i"
     done
     ```
+    This will make your git contribution chart fill with green, like:
+
+    <img src=img/20201108_1.PNG width=400px />
+
+    Now any future employers who look at your github profile page will be super impressed with your dedication to progamming.
 
 ## Part 3: The coding agent
 
