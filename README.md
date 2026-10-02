@@ -51,7 +51,7 @@ many saw this as the official turning point that AI coding agents are here to st
 If Linus thinks AI is good enough for the Linux kernel,
 it's probably good enough for whatever types of projects you are working on.
 
-<img src=img/linus2.png width=300px />
+<img src=img/linus2.jpg width=300px />
 
 You'll need a partner for Part 2 of this lab to practice the [Linux patchfile contribution process](https://docs.kernel.org/process/applying-patches.html).
 This process forms the foundation for how AI agents write code,
